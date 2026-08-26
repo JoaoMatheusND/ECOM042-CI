@@ -1,0 +1,5 @@
+tests:
+  atividade01.unit:
+    build_only: false
+    platform_allow: native_sim
+    tags: atividade01

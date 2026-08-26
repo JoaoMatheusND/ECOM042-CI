@@ -78,6 +78,14 @@ jobs:
 
       - name: Testes internos (Twister)
         working-directory: zephyrproject
+        env:
+          # disponível pro CMakeLists dos testes unitários incluírem código do aluno
+          STUDENT_SRC_DIR: ${{ github.workspace }}/zephyrproject/application
+          UNIT_DIR: ../ci/atividades/${{ inputs.atividade }}/unit
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          west twister -p native_sim -v --inline-logs -T application -O /tmp/twister-out
+          ROOTS="-T application"
+          if [ -f "$UNIT_DIR/testcase.yaml" ]; then
+            ROOTS="$ROOTS -T $UNIT_DIR"
+          fi
+          west twister -p native_sim -v --inline-logs $ROOTS -O /tmp/twister-out
