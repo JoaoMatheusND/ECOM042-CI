@@ -18,6 +18,9 @@ on:
 jobs:
   corrigir:
     runs-on: ubuntu-latest
+    env:
+      # native_sim compila com o gcc do host, sem precisar do Zephyr SDK completo.
+      ZEPHYR_TOOLCHAIN_VARIANT: host
     steps:
       - name: Checkout código do aluno
         uses: actions/checkout@v4
