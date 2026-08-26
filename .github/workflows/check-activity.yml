@@ -1,0 +1,80 @@
+name: Corrigir Atividade
+
+# Workflow reutilizável chamado pelos repositórios de atividade (ex: ECOM042-monitoria)
+# via `uses: JoaoMatheusND/ECOM042-CI/.github/workflows/check-activity.yml@main`.
+#
+# Roda em runner hospedado pelo GitHub (ubuntu-latest) para testes iniciais do CI.
+# O código do aluno precisa ter um west.yml (self.path: application) apontando pro
+# manifest oficial do Zephyr, pra permitir `west init` sem workspace pré-existente.
+
+on:
+  workflow_call:
+    inputs:
+      atividade:
+        description: "Nome da atividade (pasta em atividades/ deste repo) a validar"
+        required: true
+        type: string
+
+jobs:
+  corrigir:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código do aluno
+        uses: actions/checkout@v4
+        with:
+          path: zephyrproject/application
+
+      - name: Checkout ECOM042-CI
+        uses: actions/checkout@v4
+        with:
+          repository: JoaoMatheusND/ECOM042-CI
+          path: ci
+
+      - name: Conferir se atividade existe no ECOM042-CI
+        run: test -f ci/atividades/${{ inputs.atividade }}/testcase.yaml
+
+      - name: Instalar clang-format
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-format
+
+      - name: clang-format
+        run: |
+          find zephyrproject/application/src \( -name '*.c' -o -name '*.h' \) -print0 | \
+            xargs -0 clang-format --style=file:ci/.clang-format --dry-run --Werror
+
+      - name: Instalar dependências do sistema (Zephyr + native_sim)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget \
+            python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils \
+            file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
+
+      - name: Instalar west
+        run: pip3 install --user -U west
+
+      - name: west init / update
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          west init -l zephyrproject/application
+          cd zephyrproject
+          west update --narrow -o=--depth=1
+
+      - name: Instalar requirements do Zephyr
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          pip3 install --user -r zephyrproject/zephyr/scripts/requirements.txt
+
+      - name: Build (west build)
+        working-directory: zephyrproject
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          west build -p always -b native_sim -s application -d /tmp/build
+
+      - name: Copiar testcase.yaml da atividade
+        run: cp ci/atividades/${{ inputs.atividade }}/testcase.yaml zephyrproject/application/testcase.yaml
+
+      - name: Testes internos (Twister)
+        working-directory: zephyrproject
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          west twister -p native_sim -v --inline-logs -T application -O /tmp/twister-out

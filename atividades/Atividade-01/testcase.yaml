@@ -1,0 +1,10 @@
+tests:
+  atividade01.hello_world:
+    build_only: false
+    platform_allow: native_sim
+    harness: console
+    harness_config:
+      type: one_line
+      regex:
+        - "Hello World! .*"
+    tags: atividade01
