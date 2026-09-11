@@ -6,6 +6,13 @@ name: Corrigir Atividade
 # Roda em runner hospedado pelo GitHub (ubuntu-latest) para testes iniciais do CI.
 # O código do aluno precisa ter um west.yml (self.path: application) apontando pro
 # manifest oficial do Zephyr, pra permitir `west init` sem workspace pré-existente.
+#
+# O gabarito (testcase.yaml/enunciado.md, que revela a resposta esperada) fica
+# no repo privado ECOM042-atividades, não aqui — este repo precisa ser público
+# pra `workflow_call` funcionar em repos de alunos fora da organização, mas o
+# gabarito não pode ficar público junto. O checkout do ECOM042-atividades usa
+# o secret ATIVIDADES_TOKEN (repassado pelo repo chamador via `secrets:
+# inherit` ou explicitamente), um token com acesso de leitura só a esse repo.
 
 on:
   workflow_call:
@@ -14,6 +21,10 @@ on:
         description: "Nome da atividade (pasta em atividades/ deste repo) a validar"
         required: true
         type: string
+    secrets:
+      ATIVIDADES_TOKEN:
+        description: "Token com acesso de leitura ao repo privado ECOM042-atividades"
+        required: true
 
 jobs:
   corrigir:
@@ -33,8 +44,15 @@ jobs:
           repository: JoaoMatheusND/ECOM042-CI
           path: ci
 
-      - name: Conferir se atividade existe no ECOM042-CI
-        run: test -f ci/atividades/${{ inputs.atividade }}/testcase.yaml
+      - name: Checkout ECOM042-atividades (gabarito, privado)
+        uses: actions/checkout@v4
+        with:
+          repository: JoaoMatheusND/ECOM042-atividades
+          token: ${{ secrets.ATIVIDADES_TOKEN }}
+          path: atividades
+
+      - name: Conferir se atividade existe no ECOM042-atividades
+        run: test -f atividades/${{ inputs.atividade }}/testcase.yaml
 
       - name: Instalar clang-format
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-format
@@ -74,14 +92,14 @@ jobs:
           west build -p always -b native_sim -s application -d /tmp/build
 
       - name: Copiar testcase.yaml da atividade
-        run: cp ci/atividades/${{ inputs.atividade }}/testcase.yaml zephyrproject/application/testcase.yaml
+        run: cp atividades/${{ inputs.atividade }}/testcase.yaml zephyrproject/application/testcase.yaml
 
       - name: Testes internos (Twister)
         working-directory: zephyrproject
         env:
           # disponível pro CMakeLists dos testes unitários incluírem código do aluno
           STUDENT_SRC_DIR: ${{ github.workspace }}/zephyrproject/application
-          UNIT_DIR: ../ci/atividades/${{ inputs.atividade }}/unit
+          UNIT_DIR: ../atividades/${{ inputs.atividade }}/unit
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           ROOTS="-T application"
