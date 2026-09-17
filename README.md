@@ -17,7 +17,15 @@ Ele roda, em sequência:
 
 1. **clang-format** — `--dry-run --Werror` com o estilo em `.clang-format`.
 2. **Build** — `west build` pra `native_sim` usando o código do PR.
-3. **Testes internos** — copia `testcase.yaml` do
+3. **Checagem estrutural (opcional)** — se existir `check.py` na pasta da
+   atividade, roda `python3 check.py <src do aluno>`. Serve pra validar via
+   análise estática (regex sobre o código, sem executar nada) que um padrão
+   de projeto específico foi mesmo usado — ex.: na Atividade-02, confere que
+   `command.h` tem um campo de function pointer e que `command.c` não tem
+   os nomes dos comandos concretos hardcoded, pegando quem tentar simular a
+   saída esperada com um if/else disfarçado em vez de implementar o Command
+   Pattern de verdade.
+4. **Testes internos** — copia `testcase.yaml` do
    [ECOM042-atividades](https://github.com/JoaoMatheusND/ECOM042-atividades)
    pro repo do aluno e roda `west twister`; se existir `unit/testcase.yaml`
    na atividade, roda também como um segundo test root (testes unitários
@@ -54,6 +62,16 @@ app do aluno (build + saída), e `enunciado.md` descrevendo pro aluno o que
 implementar (contexto/capítulo do livro, interface esperada quando houver
 módulo testável, saída esperada, critério de correção). Não precisa mexer
 no código do aluno nem no workflow deste repo.
+
+### Checagem estrutural (opcional)
+
+Pra atividades onde a saída certa não garante que o padrão/técnica pedida
+foi de fato usada (ex.: um aluno pode produzir a saída esperada com um
+if/else disfarçado em vez de um Command Pattern de verdade), criar
+`atividades/<Nome-Da-Atividade>/check.py` recebendo como único argumento o
+diretório `src/` do aluno. O script deve sair com código `0` (passou) ou
+`1` (falhou, com mensagem em stderr). Ver `Atividade-02/check.py` como
+referência (regex sobre o código-fonte, sem executar nada).
 
 ### Testes unitários (opcional)
 
