@@ -65,6 +65,12 @@ jobs:
           ref: ${{ inputs.student_ref }}
           persist-credentials: false
           path: zephyrproject/application
+          # Fork de aluno + pull_request_target: opt-in explícito exigido pelo
+          # actions/checkout (proteção contra "pwn request"). Risco mitigado
+          # aqui: ATIVIDADES_TOKEN é fine-grained/read-only restrito a 1 repo
+          # privado (ver pr-check.yml no caller), e o GITHUB_TOKEN do job
+          # chamador é read-only (permissions: contents: read).
+          allow-unsafe-pr-checkout: true
 
       - name: Checkout ECOM042-CI
         uses: actions/checkout@v4
